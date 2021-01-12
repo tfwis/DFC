@@ -1,0 +1,69 @@
+---
+title: "Adaptive LASSO for correlated variables"
+output: html_notebook
+---
+
+```{r setup}
+library(dplyr)
+library(ggplot2)
+```
+
+```{r data}
+set.seed(10)
+N <- 1000
+r <- 0.7
+y <- rep(c(0,1),each=N)
+V <- Matrix::bdiag(diag(2),matrix(c(1,r,r,1),2))
+X <- rbind(
+  MASS::mvrnorm(N,c(-1, 1,-1, 1),V),
+  MASS::mvrnorm(N,c( 1,-1, 1,-1),V)
+)
+```
+
+```{r GGally, fig.width=7, fig.height=7}
+p <- GGally::ggpairs(bind_cols(class=factor(y),as_tibble(X)),
+                     columns=2:5,
+                     aes(colour=class,alpha=0.5),
+                     progress=FALSE,
+                     lower=list(continuous=GGally::wrap("points",size=0.1,alpha=0.5))) + theme_bw()
+print(p)
+```
+
+```{r fit}
+ridge <- glmnet::cv.glmnet( # 
+  X,y,family="binomial",alpha=0,
+  lambda=exp(seq(-15,0,len=100))
+)
+plot(ridge) 
+alasso <- glmnet::glmnet(
+  X,y,family="binomial",alpha=1,
+  penalty=(1/abs(coef(ridge,"lambda.1se"))[-1]),
+  lambda=exp(seq(-8,0,len=150))
+)
+b2 <- with(alasso, min(lambda[df==2])) # best lambda at df=2
+```
+
+```{r solution path}
+col <- 4
+path <- alasso$beta %>% as.matrix() %>% t %>% 
+  as_tibble() %>% mutate(lambda=alasso$lambda) %>% 
+  gather(key=Variable,value=Coefficient,-(col+1)) %>%
+  ggplot(aes(x=log(lambda),y=Coefficient,color=Variable)) + 
+  geom_line(size=1) + theme_minimal() + 
+  ggsci::scale_color_d3("category20")
+print(path)
+```
+
+```{r dbound, fig.width=7, fig.height=7}
+w <- coef(alasso,s=b2)
+pal <- rep(c("salmon","skyblue"),each=N)
+op <- par(mfrow=c(4,4),mai=c(0.6,0.6,0.1,0.1))
+for(i in 1:4) for(j in 1:4) {
+  amp <- sqrt(sum(w[c(i+1,j+1)]^2))
+  plot(X[,c(i,j)],pch=16,asp=1,col=pal,cex=0.4,xlab=i,ylab=j,axes=FALSE)
+  arrows(0,0,2*w[i+1]/amp,2*w[j+1]/amp,length=0.1)
+  if(w[j+1]==0) {abline(v=0); next}
+  abline(-w[1]/w[j+1],-w[i+1]/w[j+1])
+}
+par(op)
+```
