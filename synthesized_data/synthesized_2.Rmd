@@ -5,8 +5,7 @@ output: html_notebook
 
 
 ```{r setup}
-library(dplyr)
-library(ggplot2)
+library(tidyverse)
 ```
 
 ```{r data}
