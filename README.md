@@ -12,12 +12,10 @@ library(ggraph)
 
 #### Load scRNA-seq data
 
-Load data of from [GSE6731](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE67310) (Treutlein et. al., 2016).
+Load data of from [GSE143437](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE143437) (Andrea et. al., 2020).
 
 ```{r loadData, cache=TRUE, message=FALSE}
-dat <- read_tsv("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE67310&format=file&file=GSE67310%5FiN%5Fdata%5Flog2FPKM%5Fannotated.txt.gz") %>% filter(assignment!="Fibroblast") 
-group <- with(dat,setNames(assignment,cell_name))
-X <- dat[,-(1:5)] %>% as.matrix %>% t
-# revert to FPKM and drop genes with var.=0
-X <- 2^X[apply(X,1,var)>0,] - 1 
+Rawc <- read.table("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE143437&format=file&file=GSE143437%5FDeMicheli%5FMuSCatlas%5Frawdata%2Etxt%2Egz", sep="\t", header=T, row.names=1)
+Normc <- read.table("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE143437&format=file&file=GSE143437%5FDeMicheli%5FMuSCatlas%5Fnormalizeddata%2Etxt%2Egz", sep="\t", header=T, row.names=1)
+meta <- read_tsv("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE143437&format=file&file=GSE143437%5FDeMicheli%5FMuSCatlas%5Fmetadata%2Etxt%2Egz") 
 ```
