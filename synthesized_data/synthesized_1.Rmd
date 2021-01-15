@@ -1,15 +1,15 @@
 ---
 title: "Adaptive LASSO for correlated variables"
-output: html_notebook
+author: Takeru Fujii
+output: md_document 
 ---
 
 ```{r setup}
-library(dplyr)
-library(ggplot2)
+library(tidyverse)
 ```
 
 ```{r data}
-set.seed(10)
+set.seed(1)
 N <- 1000
 r <- 0.7
 y <- rep(c(0,1),each=N)
