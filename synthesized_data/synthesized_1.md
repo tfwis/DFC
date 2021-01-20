@@ -64,7 +64,7 @@
       ggsci::scale_color_d3("category20")
     print(path)
 
-![](synthesized_1_files/figure-markdown_strict/solution%20path-1.png)
+![](../man/synthesized_1_files/figure-markdown_strict/solution%20path-1.png)
 
     w <- coef(alasso,s=b2)
     pal <- rep(c("salmon","skyblue"),each=N)
@@ -77,6 +77,6 @@
       abline(-w[1]/w[j+1],-w[i+1]/w[j+1])
     }
 
-![](synthesized_1_files/figure-markdown_strict/dbound-1.png)
+![](../man/synthesized_1_files/figure-markdown_strict/dbound-1.png)
 
     par(op)
