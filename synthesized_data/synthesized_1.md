@@ -38,7 +38,7 @@
 
     print(p)
 
-![](synthesized_1_files/figure-markdown_strict/GGally-1.png)
+![](../man/synthesized_1_files/figure-markdown_strict/GGally-1.png)
 
     ridge <- glmnet::cv.glmnet( # 
       X,y,family="binomial",alpha=0,
@@ -46,7 +46,7 @@
     )
     plot(ridge) 
 
-![](synthesized_1_files/figure-markdown_strict/fit-1.png)
+![](../man/synthesized_1_files/figure-markdown_strict/fit-1.png)
 
     alasso <- glmnet::glmnet(
       X,y,family="binomial",alpha=1,
