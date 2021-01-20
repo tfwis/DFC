@@ -1,8 +1,7 @@
 ---
 title: "Adaptive LASSO for correlated variables"
-output:
-  html_document: 
-    keep_md: yes
+author: Takeru Fujii
+output: md_document 
 ---
 
 ```{r setup}
@@ -57,7 +56,6 @@ path <- alasso$beta %>% as.matrix() %>% t %>%
   geom_line(size=1) + theme_minimal() + 
   ggsci::scale_color_d3("category20") 
 print(path)
-ggsave(file = "~/Desktop/fig_5.pdf", plot = path, units = "in", width = 6, height = 4)
 ```
 
 ```{r dbound, fig.width=7, fig.height=7}
