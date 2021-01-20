@@ -1,0 +1,154 @@
+---
+title: "Extraction of DFCs from expreimental data"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+  html_document:
+    df_print: paged
+    theme: united
+    toc: yes
+  pdf_document: default
+---
+
+
+## Setup
+
+```{r setup}
+library(tidyverse)
+
+usecore <- 4
+doParallel::registerDoParallel(usecore)
+
+scale_color <- viridis::scale_color_viridis()
+discrete_color <- ggsci::scale_color_d3("category20")
+```
+
+
+## load data
+
+```{r load data}
+Rawc <- read.table(file="/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_rawdata.txt", sep="\t", header=T, row.names=1 )
+Normc <- read.table(file="/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_normalizeddata.txt", sep="\t", header=T, row.names=1 ) #scaled data
+meta <- read_tsv("/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_metadata.txt") 
+```
+
+
+## data processing
+
+```{r data processing}
+useg <- (rowSums(Normc>0) > 10)
+normc <- as_tibble((Normc[useg,]),rownames = "ext_gene")
+mat <- scale(t(normc[,-1]),center=FALSE) %>% as.matrix() %>% Matrix::drop0()
+```
+
+
+```{r data visualization, fig.width=12, fig.height=8}
+set.seed(10)
+um <- uwot::umap(t(normc[,-1]),n_neighbors=30,min_dist=0.5,pca=50,n_threads = 16)
+g <- igraph::graph_from_adjacency_matrix(as.matrix(dist(um))<1.5,mode="undirected")
+lou <- igraph::cluster_louvain(g)
+
+lab <- meta %>% mutate(number=1:nrow(meta)) %>% rename(cell=X1)
+Df <- lab %>% mutate(
+  UMAP1 = um[,1],
+  UMAP2 = um[,2],
+  cluster=as.factor(lou$membership),
+  #Target = (as.factor(lou$membership) == POI)
+  )
+
+patchwork::wrap_plots(
+  ggplot(Df,aes(x=UMAP1,y=UMAP2,colour=injury)) + geom_point(size=0.8,alpha=0.8) + theme_minimal() + coord_fixed() + discrete_color,
+  ggplot(Df,aes(x=UMAP1,y=UMAP2,colour=cell_annotation)) + geom_point(size=0.8,alpha=0.8) + theme_minimal() + coord_fixed() + discrete_color,
+  ggplot(Df,aes(x=UMAP1,y=UMAP2,colour=cluster)) + geom_point(size=0.8,alpha=0.8) + theme_minimal() + coord_fixed() + discrete_color,
+  #ggplot(Df,aes(x=UMAP1,y=UMAP2,colour=Target)) + geom_point(size=0.8,alpha=0.8) + theme_minimal() + coord_fixed() + discrete_color,
+  nrow=2)
+```
+
+```{r markers, fig.width=10, fig.height=5}
+Df %>%
+  select(UMAP1,UMAP2)%>%
+  cbind(.,t(Normc[rownames(Normc) %in% c("Pax7","Myod1"),])) %>% 
+  gather(key="ext_gene",value=expression,-(1:2)) %>%
+  ggplot(aes(x=UMAP1,y=UMAP2,color=expression)) + geom_point(size=0.6,alpha=0.8) + 
+  facet_wrap(~ext_gene) +  theme_minimal() + scale_color
+```
+
+
+## adaptive lasso
+
+```{r calculate penalty}
+POI <- 12
+y <- (lou$membership == POI)
+
+set.seed(5)
+ext.ind <- lab %>% mutate(cluster=lou$membership) %>% split(.,.$cluster) %>% 
+  lapply(.,function(x){sample(x$number,trunc(0.3*nrow(x)))}) %>% unlist(use.names = FALSE)
+useg.30 <- (colSums(mat[ext.ind,] > 0 ) > 10)
+ridge.30 <-  glmnet::cv.glmnet(
+  mat[ext.ind,useg.30],y[ext.ind],family="binomial",
+  alpha=0,lambda = exp(seq(-7,1,len=40)),parallel = T
+  )
+plot(ridge.30)
+plot(ridge.30$glmnet.fit,xvar="lambda")
+```
+
+
+```{r adaptive lasso}
+penalty <- 1/abs(coef.glmnet(ridge.30,"lambda.min")[-1])
+
+set.seed(6)
+alasso.min <- glmnet::cv.glmnet(
+  mat[,useg.30],y,family="binomial",alpha=1,
+  penalty=penalty,parallel = T
+  )
+
+plot(alasso.min)
+plot(alasso.min$glmnet.fit,xvar="lambda")
+```
+
+
+```{r DFC extraction}
+b <- Matrix::drop(coef.glmnet(alasso.min,"lambda.1se")) %>% as_tibble()
+B <- c("Int",rownames(Normc[useg,][useg.30,])) %>% cbind(.,b)
+colnames(B) = c("ext_gene","weight") 
+Wei <- B[B$weight!=0,]%>% as_tibble() %>%
+  right_join(e2g[,-1],.) %>% arrange(-weight)
+Wei <- Wei[duplicated(Wei$ext_gene)!=TRUE,]
+
+print(Wei)
+```
+
+
+## DESeq2
+
+```{r DESeq}
+Y <- matrix(lou$membership==POI, ncol = 1)
+colnames(Y) = "label"
+
+dds <- DESeqDataSetFromMatrix(Rawc[useg,]+1, colData = Y, design = ~ label)
+dds <- DESeq2::DESeq(dds,test="Wald")
+res <- DESeq2::results(dds,lfcThreshold=lfcthreth,alpha=fdr) %>% as_tibble(.,rownames="ext_gene") %>% filter(padj<0.01)
+
+print(res)
+```
+
+
+## DEG vs DFC
+
+```{r extractRes}
+dfcs <- Wei %>% filter(ext_gene!="Int") %>% select(ext_gene) %>% as_vector()
+venn(list(DEGs=res$ext_gene,
+          DFCs=dfcs))
+```
+
+```{r,fig.height=5,fig.width=8}
+res_ <- res %>% mutate(log10FDR=-log(padj,10),PN=(log2FoldChange>0)) %>% left_join(.,Wei[,c(1,4)],by="ext_gene")
+res_$class[is.na(res_$weight)] <- "nonDFC"
+res_$class[res_$weight!="nonDFC"] <- "DFC"
+ggplot(res_,aes(x=log2FoldChange,y=log10FDR,color=class)) + geom_point(size=1.2,alpha=0.6) + 
+  theme_minimal() + scale_color_manual(values = c("#D62728FF","#808080")) 
+ggplot(res_,aes(x=baseMean,y=log2FoldChange,color=class)) + geom_point(size=0.8,alpha=0.8) + 
+  theme_minimal() + scale_color_manual(values = c("#D62728FF","#808080")) + scale_x_log10()
+```
+
