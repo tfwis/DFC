@@ -70,7 +70,7 @@ p <- GGally::ggpairs(bind_cols(class=factor(y),as_tibble(X))[c(1000:1998,1:999),
 print(p)
 ```
 
-![](synthesized_2_files/figure-html/GGally-1.png)<!-- -->
+![](../man/synthesized_2_files/figure-html/GGally-1.png)<!-- -->
 
 
 ```r
@@ -81,7 +81,7 @@ ridge <- glmnet::cv.glmnet( #
 plot(ridge) 
 ```
 
-![](synthesized_2_files/figure-html/fit-1.png)<!-- -->
+![](../man/synthesized_2_files/figure-html/fit-1.png)<!-- -->
 
 ```r
 alasso <- glmnet::glmnet(
@@ -104,7 +104,7 @@ path <- alasso$beta %>% as.matrix() %>% t %>%
 print(path)
 ```
 
-![](synthesized_2_files/figure-html/solution path-1.png)<!-- -->
+![](../man/synthesized_2_files/figure-html/solution path-1.png)<!-- -->
 
 ```r
 ggsave(file = "~/Desktop/fig_5.pdf", plot = path, units = "in", width = 6, height = 4)
@@ -124,7 +124,7 @@ for(i in 1:4) for(j in 1:4) {
 }
 ```
 
-![](synthesized_2_files/figure-html/dbound-1.png)<!-- -->
+![](../man/synthesized_2_files/figure-html/dbound-1.png)<!-- -->
 
 ```r
 par(op)
