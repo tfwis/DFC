@@ -43,6 +43,8 @@ mat <- scale(t(normc[,-1]),center=FALSE) %>% as.matrix() %>% Matrix::drop0()
 ```
 
 
+## POI setting
+
 ```{r data visualization, fig.width=12, fig.height=8}
 set.seed(10)
 um <- uwot::umap(t(normc[,-1]),n_neighbors=30,min_dist=0.5,pca=50,n_threads = 16)
@@ -75,7 +77,7 @@ Df %>%
 ```
 
 
-## adaptive lasso
+## DFC extraction
 
 ```{r calculate penalty}
 POI <- 12
@@ -120,9 +122,9 @@ print(Wei)
 ```
 
 
-## DESeq2
+## DEG extraction
 
-```{r DESeq}
+```{r DESeq2}
 Y <- matrix(lou$membership==POI, ncol = 1)
 colnames(Y) = "label"
 
@@ -136,7 +138,7 @@ print(res)
 
 ## DEG vs DFC
 
-```{r extractRes}
+```{r venn plot}
 dfcs <- Wei %>% filter(ext_gene!="Int") %>% select(ext_gene) %>% as_vector()
 venn(list(DEGs=res$ext_gene,
           DFCs=dfcs))
