@@ -3,11 +3,7 @@
 Please confirm that these packages are installed before trying this example.
 
 ``` {r loadLibs, message=FALSE}
-library(ddhodge)
-library(dplyr)
-library(readr)
-library(ggsci)
-library(ggraph)
+library(tidyverse)
 ```
 
 #### Load scRNA-seq data
