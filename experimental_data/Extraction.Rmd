@@ -24,6 +24,7 @@ scale_color <- viridis::scale_color_viridis()
 discrete_color <- ggsci::scale_color_d3("category20")
 ```
 
+
 ## data processing
 
 ```{r data processing}
