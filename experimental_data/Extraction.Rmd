@@ -17,7 +17,7 @@ output:
 ```{r setup}
 library(tidyverse)
 
-usecore <- 4
+usecore <- 1
 doParallel::registerDoParallel(usecore)
 
 scale_color <- viridis::scale_color_viridis()
