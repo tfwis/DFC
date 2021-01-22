@@ -24,16 +24,6 @@ scale_color <- viridis::scale_color_viridis()
 discrete_color <- ggsci::scale_color_d3("category20")
 ```
 
-
-## load data
-
-```{r load data}
-Rawc <- read.table(file="/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_rawdata.txt", sep="\t", header=T, row.names=1 )
-Normc <- read.table(file="/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_normalizeddata.txt", sep="\t", header=T, row.names=1 ) #scaled data
-meta <- read_tsv("/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_metadata.txt") 
-```
-
-
 ## data processing
 
 ```{r data processing}
