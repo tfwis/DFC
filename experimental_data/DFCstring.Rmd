@@ -1,0 +1,56 @@
+---
+title: "STRING database"
+output: html_notebook
+---
+
+Downloaded at: <https://string-db.org/cgi/download?species_text=Mus+musculus>
+
+```{r setup}
+library(dplyr)
+library(tidygraph)
+library(ggraph)
+```
+
+```{r loadGenes}
+dfc <- readr::read_csv("/home/guestA/n70275b/work/fujii/dfcs_w.csv",col_types="_cdc") %>% rename(gene=ext_gene)
+deg <- readr::read_csv("/home/guestA/n70275b/work/fujii/DEG_sc.csv") %>% rename(gene=ext_gene)
+```
+
+```{r loadSTRING}
+st <- readr::read_delim("~/fuji/10090.protein.links.full.v11.0.txt",delim=" ")
+ann <- readr::read_tsv("/home/guestA/n70275b/work/fujii/string/10090.protein.info.v11.0.txt.gz",col_types="cc__") %>% with(setNames(preferred_name,protein_external_id))
+stg <- st %>% mutate_at(1:2,~ann[.])
+g <- as_tbl_graph(stg,directed=FALSE) %>% rename(gene=name) %E>% distinct
+```
+
+```{r subgraph}
+s <- g %N>% inner_join(dfc) %>% mutate(sgn=if_else(weight>0,"+","-"))
+u <- deg %>% top_n(108,abs(stat)) %>% inner_join(activate(g,nodes),.) %>%
+  mutate(weight=log2FoldChange,sgn=ifelse(log2FoldChange>0,"+","-"))
+```
+
+```{r plots, fig.width=10, fig.height=6}
+plotg <- function(g, cond){
+  g %E>% filter(!!cond) %N>% filter(centrality_degree()>0) %>%
+  ggraph(layout="fr") + geom_edge_link(width=0.1) + 
+  geom_node_point(aes(size=abs(weight),color=sgn)) +
+  geom_node_text(aes(label=gene),repel=TRUE,color="grey20") +
+  scale_color_manual(values = c("#F8766D","#00BFC4")) +
+  #ggsci::scale_color_aaas() +
+  #scale_color_gradient2(high="red",mid="grey",low="blue")+
+  theme_void()
+}
+
+cond <- quo(combined_score>400)
+#cond <- quo(coexpression>0 | coexpression_transferred>0)
+#cond <- quo(experiments>0 | experiments_transferred>0)
+
+plotg(s,cond)
+plotg(u,cond)
+```
+
+```{r}
+dfc.string <- plotg(s,cond)
+ggsave(file="~/fuji/work/Logireg/paper/stringnet.pdf", dfc.string, units = "in", width = 7, height = 4)
+```
+
