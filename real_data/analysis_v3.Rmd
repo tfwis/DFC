@@ -22,8 +22,8 @@ discrete_color <- ggsci::scale_color_d3("category20")
 ```
 
 ```{r load}
-dfcs <- Wei %>% select(ext_gene,weight)
-lab.POI <- Df$cluster == POI
+lab.POI <- read_csv("/DFC/real_data/genelist/labPOI.csv") %>% .$value
+dfcs <- readr::read_csv("/DFC/real_data/genelist/dfcs.csv")
 ```
 
 

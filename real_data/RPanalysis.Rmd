@@ -5,12 +5,8 @@ output: html_notebook
 
 
 ```{r load}
-Normc <- read.table(file="/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_normalizeddata.txt", sep="\t", header=T, row.names=1 ) #scaled data
-normc <- as_tibble((Normc[useg,]),rownames = "ext_gene")
-
-lab.POI <- read_csv("~/fuji/labPOI.csv") %>% .$value
-dfcs <- read_csv("~/fuji/dfcs.csv") 
-print(dfcs)
+lab.POI <- read_csv("/DFC/real_data/genelist/labPOI.csv") %>% .$value
+dfcs <- readr::read_csv("/DFC/real_data/genelist/dfcs.csv")
 ```
 
 ```{r processing}

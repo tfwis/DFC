@@ -12,14 +12,12 @@ library(ggraph)
 ```
 
 ```{r loadGenes}
-dfc <- readr::read_csv("/home/guestA/n70275b/work/fujii/dfcs_w.csv",col_types="_cdc") %>% rename(gene=ext_gene)
-deg <- readr::read_csv("/home/guestA/n70275b/work/fujii/DEG_sc.csv") %>% rename(gene=ext_gene)
+dfcs <- readr::read_csv("/DFC/real_data/genelist/dfcs.csv")
+degs <- readr::read_csv("/DFC/real_data/genelist/degs.csv")
 ```
 
 ```{r loadSTRING}
-st <- readr::read_delim("~/fuji/10090.protein.links.full.v11.0.txt",delim=" ")
-ann <- readr::read_tsv("/home/guestA/n70275b/work/fujii/string/10090.protein.info.v11.0.txt.gz",col_types="cc__") %>% with(setNames(preferred_name,protein_external_id))
-stg <- st %>% mutate_at(1:2,~ann[.])
+stg <- st_link %>% mutate_at(1:2,~st_info[.])
 g <- as_tbl_graph(stg,directed=FALSE) %>% rename(gene=name) %E>% distinct
 ```
 

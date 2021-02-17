@@ -17,11 +17,20 @@ output:
 ```{r setup}
 library(tidyverse)
 
-usecore <- 1
+usecore <- 4
 doParallel::registerDoParallel(usecore)
 
 scale_color <- viridis::scale_color_viridis()
 discrete_color <- ggsci::scale_color_d3("category20")
+```
+
+
+## load data
+
+```{r load data}
+Rawc <- read.table(file="/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_rawdata.txt", sep="\t", header=T, row.names=1 )
+Normc <- read.table(file="/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_normalizeddata.txt", sep="\t", header=T, row.names=1 ) #scaled data
+meta <- read_tsv("/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_metadata.txt") 
 ```
 
 
@@ -84,7 +93,22 @@ Df %>%
   gather(key="ext_gene",value=expression,-(1:2)) %>%
   ggplot(aes(x=UMAP1,y=UMAP2,color=expression)) + geom_point(size=0.6,alpha=0.8) + 
   facet_wrap(~ext_gene) +  theme_minimal() + scale_color
+
+pamy <- normc %>% filter(ext_gene %in% c("Pax7","Myod1")) %>% column_to_rownames(var = "ext_gene") %>% t %>% as_tibble() 
+pamy[pamy>0] <- 1
+tab.pamy <- pamy %>% mutate(cluster=as.factor(lou$membership)) %>% gather(key=ext_gene,value=expr,-3) %>% 
+  dplyr::group_by(cluster,ext_gene) %>% dplyr::summarise(p=trunc(100*mean(expr))) %>% spread(key=ext_gene,value=p)
+print(tab.pamy)
 ```
+
+```{r}
+pamy <- normc %>% filter(ext_gene %in% c("Pax7","Myod1")) %>% column_to_rownames(var = "ext_gene") %>% t %>% as_tibble() 
+pamy[pamy>0] <- 1
+tab.pamy <- pamy %>% mutate(cluster=as.factor(lou$membership)) %>% gather(key=ext_gene,value=expr,-3) %>% 
+  dplyr::group_by(cluster,ext_gene) %>% dplyr::summarise(p=trunc(100*mean(expr))) %>% spread(key=ext_gene,value=p)
+print(tab.pamy)
+```
+
 
 
 ## DFC extraction
@@ -111,7 +135,7 @@ penalty <- 1/abs(coef.glmnet(ridge.30,"lambda.min")[-1])
 
 set.seed(6)
 alasso.min <- glmnet::cv.glmnet(
-  mat[,useg.30],y,family="binomial",alpha=1,
+  mat[,useg.30],y,family="binomial",alpha=1,Y
   penalty=penalty,parallel = T
   )
 
