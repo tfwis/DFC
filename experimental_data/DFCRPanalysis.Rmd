@@ -1,0 +1,72 @@
+---
+title: "DFC-RPs"
+output: html_notebook
+---
+
+
+```{r load}
+Normc <- read.table(file="/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_normalizeddata.txt", sep="\t", header=T, row.names=1 ) #scaled data
+normc <- as_tibble((Normc[useg,]),rownames = "ext_gene")
+
+lab.POI <- read_csv("~/fuji/labPOI.csv") %>% .$value
+dfcs <- read_csv("~/fuji/dfcs.csv") 
+print(dfcs)
+```
+
+```{r processing}
+allrp <- normc$ext_gene[grep("Rp.*", normc$ext_gene)]
+dfcrp <- dfcs_w$ext_gene[grep("Rp.*", dfcs_w$ext_gene)]
+rpe <-  normc %>% filter(ext_gene %in% allrp) %>% 
+  tibble::column_to_rownames("ext_gene") %>%
+  t %>% as_tibble(rownames="cell")
+rp <- left_join(Df,rpe,by="cell") %>% gather(-(1:ncol(Df)),key=gene,value=expression)
+
+print(rpe)
+print(rp)
+```
+
+```{r means heatmap}
+M <- rp %>% filter(gene %in% dfcrp) %>% dplyr::group_by(cluster,gene) %>% dplyr::summarise(s=mean(expression))
+mm <- M %>% tidyr::pivot_wider(c(gene,cluster,s),names_from=cluster,values_from=s) %>%
+  tibble::column_to_rownames("gene")
+hmrp <- pheatmap::pheatmap(t(mm),scale="none",color=viridis::viridis(21),border_color = NA)
+```
+
+
+```{r allcells - dfcrp}
+p1 <- rpe[,colnames(rpe)%in%dfcrp] %>% prcomp()
+pca1 <- ggbiplot::ggbiplot(pc,group=Df$Target,scale=0.2,alpha=0.6)+ #xlim(-3,5) +
+  theme(legend.position="top")+theme_linedraw()
+print(pca1)
+``` 
+
+```{r allcells - allrp}
+p2 <- rpe %>% select(-cell) %>% prcomp()
+pca2 <- ggbiplot::ggbiplot(p2,group=Df$Target,scale=0.2,alpha=0.6)+ #xlim(-3,5) +
+  theme(legend.position="top")+theme_linedraw()
+print(pca2)
+``` 
+
+```{r POI - dfcrp}
+matd <- rp %>% filter(cluster==12) %>%
+  tidyr::pivot_wider(c(cell,gene,expression),names_from=gene,values_from=expression,values_fill=0) %>%
+  tibble::column_to_rownames("cell")
+matd_ <- matd[,apply(matd, 2, var, na.rm=TRUE) != 0]
+pd3 <- prcomp(matd_)
+pca3 <- ggbiplot::ggbiplot(pd3,group=Df$injury[lab.POI],scale=0.2,alpha=0.6)+ #xlim(-3,5) +
+  theme(legend.position="top")+theme_linedraw()+discrete_color
+
+print(pca3)
+```
+
+```{r POI - allrp}
+matd <- rp %>% filter(gene %in% dfcrp,cluster==12) %>%
+  tidyr::pivot_wider(c(cell,gene,expression),names_from=gene,values_from=expression,values_fill=0) %>%
+  tibble::column_to_rownames("cell")
+matd_ <- matd[,apply(matd, 2, var, na.rm=TRUE) != 0]
+pd4 <- prcomp(matd_)
+pca4 <- ggbiplot::ggbiplot(pd4,group=Df$injury[lab.POI],scale=0.2,alpha=0.6)+ #xlim(-3,5) +
+  theme(legend.position="top")+theme_linedraw()+discrete_color
+print(pca4)
+```
+

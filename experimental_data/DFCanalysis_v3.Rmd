@@ -1,0 +1,165 @@
+---
+title: "Extraction of DFCs from expreimental data"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+  html_document:
+    df_print: paged
+    theme: united
+    toc: yes
+  pdf_document: default
+---
+
+
+## Setup
+
+```{r setup}
+library(tidyverse)
+
+scale_color <- viridis::scale_color_viridis()
+discrete_color <- ggsci::scale_color_d3("category20")
+```
+
+```{r load}
+dfcs <- Wei %>% select(ext_gene,weight)
+lab.POI <- Df$cluster == POI
+```
+
+
+## classification & visualization
+
+```{r classification}
+quant <-  Normc[rownames(Normc) %in% dfcs$ext_gene,] %>% split(.,dfcs$ext_gene) %>% 
+  lapply(function(x){as_tibble(t(x)) %>% dplyr::mutate(cluster=Df$cluster)}) %>%
+  lapply(function(x){
+    df <- x; colnames(df)[1] <- "value"
+    dplyr::group_by(df,cluster) %>% dplyr::summarise("1st"=quantile(value)[2],
+                                        "mean"=quantile(value)[3],
+                                        "3rd"=quantile(value)[4],.groups='drop')
+    })
+rm(groups); groups <- vector("list",3)
+names(groups) <- c("strong","weak","niche")
+for (i in 1:length(quant)) {
+  if(all(quant[[i]][,4] == 0)){
+    groups[["niche"]] <- c(groups[["niche"]],names(quant)[i])
+    }else{
+      if(sum(quant[[i]][,4] > 0) < 3 && any(quant[[1]]$cluster[quant[[1]][,4] > 0] == POI)){
+        groups[["strong"]] <- c(groups[["strong"]],names(quant)[i])
+        }else{
+          groups[["weak"]] <- c(groups[["weak"]],names(quant)[i])
+        } 
+    }
+}
+
+print(groups)
+dfcs <- cbind(unlist(groups,use.names = FALSE),rep(names(groups),lapply(groups, length))) %>% 
+  as_tibble() %>% dplyr::rename(ext_gene=V1,group=V2) %>% left_join(dfcs,.)
+print(dfcs)
+```
+
+
+```{r venn plot}
+gplots::venn(list(nonDEGs=setdiff(dfcs$ext_gene,degs$ext_gene),
+          Niche=groups$niche))
+degs[order(degs$baseMean),] %>% mutate(baseMean_rank=1:nrow(degs)) %>% filter(ext_gene %in% groups$niche)
+intersect(setdiff(dfcs$ext_gene,degs$ext_gene),groups$niche)
+```
+
+
+```{r box plot,fig.width=9, fig.height=8}
+Df <- Df %>% mutate(Target=(cluster==12))
+dfc.expr <- normc %>%
+  inner_join(dfcs,.,by="ext_gene") %>% 
+  tidyr::gather(cell,expr,-(1:3)) %>% inner_join(Df,by="cell")
+boxes <- function(x,nrow=5){
+  dfc.expr %>%
+    filter(ext_gene %in% x) %>%
+    ggplot(aes(x=cluster,y=expr,fill=Target)) +
+    geom_boxplot() + facet_wrap(~reorder(ext_gene,-abs(weight)),nrow=nrow) +
+    theme_minimal() + discrete_color + 
+    theme(axis.text.x = element_blank(),legend.position = 'none') 
+}
+1:3 %>% map(~boxes(groups[[.]][1:20]))
+```
+
+
+```{r GO enrichment, fig.width=8,fig.height=4}
+entid <- clusterProfiler::bitr(e2g$ens_gene[e2g$ext_gene %in% groups$strong],
+                               fromType = "ENSEMBL",toType = "ENTREZID",org.Mm.eg.db) %>% .$ENTREZID
+goen <- clusterProfiler::enrichGO(entid,OrgDb = org.Mm.eg.db,
+                                  readable = TRUE,ont="BP") %>% clusterProfiler::simplify()
+clusterProfiler::dotplot(goen)
+```
+
+```{r plot niche, fig.width=10, fig.height=7}
+biexpr.nic <- dfc.expr %>% filter(group == "niche")
+biexpr.nic$expr[biexpr.nic$expr > 0] <- 1
+unic <- biexpr.nic %>% #filter(gene %in% groups$weak[1:18]) %>%
+  ggplot(.,aes(x=UMAP1,y=UMAP2,color=as.double(expr))) +
+  geom_point(size=0.001,alpha=0.5) + facet_wrap(~ext_gene,ncol=7) + 
+  theme_minimal() + coord_fixed() + scale_color
+print(unic)
+```
+
+```{r plot strong, fig.width=12, fig.height=10}
+expr.str <- dfc.expr %>% filter(group == "strong")
+expr.str$expr[expr.str$expr > 2.5] <- 2.5 #upper limit = 2.5
+ustr <- expr.str %>% 
+  ggplot(.,aes(x=UMAP1,y=UMAP2,color=as.double(expr))) +
+  geom_point(size=0.001,alpha=0.5) + facet_wrap(~ext_gene,ncol=7) + 
+  theme_minimal() + coord_fixed() + scale_color
+print(ustr)
+```
+
+```{r plot weak, fig.width=8, fig.height=12}
+uweak <- dfc.expr %>% filter(group == "weak") %>%
+  ggplot(.,aes(x=UMAP1,y=UMAP2,color=as.double(expr))) +
+  geom_point(size=0.001,alpha=0.5) + facet_wrap(~ext_gene,ncol=7) + 
+  theme_minimal() + coord_fixed() + scale_color 
+print(uweak)
+```
+
+
+```{r correlation,fig.width=8,fig.height=8}
+anno <- colnames(cor12) %>% as_tibble %>% dplyr::rename(ext_gene=value) %>% left_join(.,dfcs_w) %>% as.data.frame() %>% .[,-1]
+colnames(anno) <- c("weight","gene group")
+rownames(anno) <- colnames(cor12)
+anno[anno$weight>0,1] <- "Positive"
+anno[anno$weight<0,1] <- "Negative"
+ann_colors = list(
+    "weight" = c(Positive = "#ED776D", Negative = "#6895BD"),
+    "gene group" = c(specific = "#EFF2DF", strong = "#F69005", weak = "#41B6D2")
+    )
+pal <- colorRampPalette(c("blue","grey","red"))
+
+dfcs <- read_csv("~/fuji/genelist")
+expr <-  Normc[rownames(Normc) %in% dfcs$value,] %>% t 
+cor1 <- cor(expr[lab.POI,]); diag(cor1) <- NA
+ph1 <- pheatmap::pheatmap(cor1,breaks=seq(-0.8,0.8,len=256),color=pal(256),
+                          annotation_row = anno, annotation_col = anno,
+                          annotation_colors = ann_colors,
+                          #cellwidth = 4.5, cellheight = 4.5,fontsize = 5,
+                          border_color = NA)
+cor11 <- cor1[ph1$tree_col$order,ph1$tree_col$order]
+
+cor2 <- cor(expr[!lab.POI,]); diag(cor2) <- NA
+ph2 <- pheatmap::pheatmap(cor2,breaks=seq(-0.8,0.8,len=256),color=pal(256),
+                          annotation_row = anno, annotation_col = anno,
+                          annotation_colors = ann_colors,
+                          #cellwidth = 4.5, cellheight = 4.5,fontsize = 5,
+                          border_color = NA)
+cor22 <- cor2[ph1$tree_col$order,ph1$tree_col$order]
+
+cor12 <- cor11
+cor12[lower.tri(cor12)] <- cor22[lower.tri(cor22)]
+ph12 <- pheatmap::pheatmap(cor12,breaks=seq(-0.8,0.8,len=256),color=pal(256),
+                           annotation_row = anno, annotation_col = anno,
+                           annotation_colors = ann_colors,
+                           #fontsize = 5,cellwidth = 4.5, cellheight = 4.5,
+                           border_color = NA,
+                           cluster_rows = FALSE, cluster_cols = FALSE)
+```
+
+
+
