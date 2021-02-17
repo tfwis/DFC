@@ -8,7 +8,7 @@ library(tidyverse)
 
 #### Load scRNA-seq data
 
-Load data of from [GSE143437](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE143437) (Andrea et. al., 2020).
+Load data of from [GSE143437](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE143437) (Andrea et al., 2020).
 
 ```{r loadData, cache=TRUE, message=FALSE}
 Rawc <- read.table("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE143437&format=file&file=GSE143437%5FDeMicheli%5FMuSCatlas%5Frawdata%2Etxt%2Egz", sep="\t", header=T, row.names=1)
