@@ -15,3 +15,10 @@ Rawc <- read.table("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE143437&for
 Normc <- read.table("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE143437&format=file&file=GSE143437%5FDeMicheli%5FMuSCatlas%5Fnormalizeddata%2Etxt%2Egz", sep="\t", header=T, row.names=1)
 meta <- read_tsv("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE143437&format=file&file=GSE143437%5FDeMicheli%5FMuSCatlas%5Fmetadata%2Etxt%2Egz") 
 ```
+
+#### Load STRING 
+
+```
+st_link <- readr::read_delim("https://stringdb-static.org/download/protein.links.full.v11.0/10090.protein.links.full.v11.0.txt.gz",delim=" ")
+st_info <- readr::read_tsv("https://stringdb-static.org/download/protein.info.v11.0/10090.protein.info.v11.0.txt.gz",col_types="cc__") %>% with(setNames(preferred_name,protein_external_id))
+```
