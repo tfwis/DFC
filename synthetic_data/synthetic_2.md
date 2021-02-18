@@ -2,10 +2,10 @@
 
     ## ─ Attaching packages ──────────────────── tidyverse 1.3.0 ─
 
-    ## ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
-    ## ✓ tibble  3.0.4     ✓ dplyr   1.0.2
+    ## ✓ ggplot2 3.3.3     ✓ purrr   0.3.4
+    ## ✓ tibble  3.0.6     ✓ dplyr   1.0.4
     ## ✓ tidyr   1.1.2     ✓ stringr 1.4.0
-    ## ✓ readr   1.4.0     ✓ forcats 0.5.0
+    ## ✓ readr   1.4.0     ✓ forcats 0.5.1
 
     ## ─ Conflicts ───────────────────── tidyverse_conflicts() ─
     ## x dplyr::filter() masks stats::filter()
@@ -13,16 +13,16 @@
 
     set.seed(1)
     p <- 1/3
-    d <- 4
+    d <- 5
     m <- p*d
     s <- sqrt(1+p*(1-p)*d^2)
     N <- 999
     y <- rep(c(0,1),each=N)
     X <- cbind(
-     c(rnorm((1-p)*N,0),rnorm(p*N,d),rnorm(N,d,s)),
-     c(rnorm(p*N,d),rnorm((1-p)*N,0),rnorm(N,d,s)),
-     c(rnorm(N,m,s),rnorm(N,d,s)),
-     c(rnorm(N,m,s),rnorm(N,d,s))
+      c(rnorm((1-p)*N,0),rnorm(p*N,d),rnorm(N,d,s)),
+      c(rnorm(p*N,d),rnorm((1-p)*N,0),rnorm(N,d,s)),
+      c(rnorm(N,m,s),rnorm(N,d,s)),
+      c(rnorm(N,m,s),rnorm(N,d,s))
     )
 
     p <- GGally::ggpairs(bind_cols(class=factor(y),as_tibble(X))[c(1000:1998,1:999),],
@@ -37,12 +37,10 @@
 
     ## Warning: The `x` argument of `as_tibble.matrix()` must have unique column names if `.name_repair` is omitted as of tibble 2.0.0.
     ## Using compatibility `.name_repair`.
-    ## This warning is displayed once every 8 hours.
-    ## Call `lifecycle::last_warnings()` to see where this warning was generated.
 
     print(p)
 
-![](../man/synthesized_2_files/figure-markdown_strict/GGally-1.png)
+![](../man/synthetic_2_files/figure-markdown_strict/GGally-1.png)
 
     ridge <- glmnet::cv.glmnet( # 
       X,y,family="binomial",alpha=0,
@@ -50,7 +48,7 @@
     )
     plot(ridge) 
 
-![](../man/synthesized_2_files/figure-markdown_strict/fit-1.png)
+![](../man/synthetic_2_files/figure-markdown_strict/fit-1.png)
 
     alasso <- glmnet::glmnet(
       X,y,family="binomial",alpha=1,
@@ -68,7 +66,7 @@
       ggsci::scale_color_d3("category20") 
     print(path)
 
-![](../man/synthesized_2_files/figure-markdown_strict/solution%20path-1.png)
+![](../man/synthetic_2_files/figure-markdown_strict/solution%20path-1.png)
 
     w <- coef(alasso,s=b2)
     pal <- rep(c("salmon","skyblue"),each=N)
@@ -81,6 +79,6 @@
       abline(-w[1]/w[j+1],-w[i+1]/w[j+1])
     }
 
-![](../man/synthesized_2_files/figure-markdown_strict/dbound-1.png)
+![](../man/synthetic_2_files/figure-markdown_strict/dbound-1.png)
 
     par(op)
