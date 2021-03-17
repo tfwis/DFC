@@ -52,12 +52,12 @@ g <- igraph::graph_from_adjacency_matrix(as.matrix(dist(um))<1.5,mode="undirecte
 lou <- igraph::cluster_louvain(g)
 
 lab <- meta %>% mutate(number=1:nrow(meta)) %>% rename(cell=X1)
-Df <- lab %>% mutate(
-  UMAP1 = um[,1],
-  UMAP2 = um[,2],
-  cluster=as.factor(lou$membership)
-  )
-
+Df <- lab %>% 
+  mutate(
+    UMAP1 = um[,1],
+    UMAP2 = um[,2],
+    cluster=as.factor(lou$membership)
+)
 patchwork::wrap_plots(
   ggplot(Df,aes(x=UMAP1,y=UMAP2,colour=injury)) + geom_point(size=0.8,alpha=0.8) + theme_minimal() + coord_fixed() + discrete_color,
   ggplot(Df,aes(x=UMAP1,y=UMAP2,colour=cell_annotation)) + geom_point(size=0.8,alpha=0.8) + theme_minimal() + coord_fixed() + discrete_color,
@@ -66,14 +66,18 @@ patchwork::wrap_plots(
 ```
 
 ```{r}
-day <- Df %>% select(UMAP1,UMAP2,injury) %>% gather(key=key,value=Day,-c(1:2)) %>% select(-key)
+day <- Df %>% 
+  select(UMAP1,UMAP2,injury) %>% 
+  gather(key=key,value=Day,-c(1:2)) %>% 
+  select(-key)
 postin <- function(x,y){
-  day %>% mutate(key=(Day==x)) %>%
-    ggplot(aes(x=UMAP1,y=UMAP2,colour=key)) + geom_point(size=0.8,alpha=0.5) + theme_minimal() + coord_fixed() + ggtitle(x) + 
-    scale_color_manual(values = c("TRUE"=discrete_color$palette(20)[y],"FALSE"="#d3d3d3")) + 
+  day %>% 
+    mutate(key=(Day==x)) %>%
+    ggplot(aes(x=UMAP1,y=UMAP2,colour=key)) + 
+    geom_point(size=0.8,alpha=0.5) + theme_minimal() + coord_fixed() + ggtitle(x) + 
+    scale_color_manual(values=c("TRUE"=discrete_color$palette(20)[y],"FALSE"="#d3d3d3")) + 
     theme(legend.position = 'none', axis.title = element_blank(), axis.ticks = element_blank(), axis.text = element_blank())
 }
-
 dd <- patchwork::wrap_plots(
   postin("Day 0",1),
   postin("Day 2",2),
@@ -92,21 +96,19 @@ Df %>%
   ggplot(aes(x=UMAP1,y=UMAP2,color=expression)) + geom_point(size=0.6,alpha=0.8) + 
   facet_wrap(~ext_gene) +  theme_minimal() + scale_color
 
-pamy <- normc %>% filter(ext_gene %in% c("Pax7","Myod1")) %>% column_to_rownames(var = "ext_gene") %>% t %>% as_tibble() 
+pamy <- normc %>% 
+  filter(ext_gene %in% c("Pax7","Myod1")) %>% 
+  column_to_rownames(var="ext_gene") %>% 
+  t %>% as_tibble() 
 pamy[pamy>0] <- 1
-tab.pamy <- pamy %>% mutate(cluster=as.factor(lou$membership)) %>% gather(key=ext_gene,value=expr,-3) %>% 
-  dplyr::group_by(cluster,ext_gene) %>% dplyr::summarise(p=trunc(100*mean(expr))) %>% spread(key=ext_gene,value=p)
+tab.pamy <- pamy %>% 
+  mutate(cluster=as.factor(lou$membership)) %>% 
+  gather(key=ext_gene,value=expr,-3) %>% 
+  group_by(cluster,ext_gene) %>% 
+  summarise(p=trunc(100*mean(expr))) %>% 
+  spread(key=ext_gene,value=p)
 print(tab.pamy)
 ```
-
-```{r}
-pamy <- normc %>% filter(ext_gene %in% c("Pax7","Myod1")) %>% column_to_rownames(var = "ext_gene") %>% t %>% as_tibble() 
-pamy[pamy>0] <- 1
-tab.pamy <- pamy %>% mutate(cluster=as.factor(lou$membership)) %>% gather(key=ext_gene,value=expr,-3) %>% 
-  dplyr::group_by(cluster,ext_gene) %>% dplyr::summarise(p=trunc(100*mean(expr))) %>% spread(key=ext_gene,value=p)
-print(tab.pamy)
-```
-
 
 
 ## DFC extraction
@@ -159,7 +161,8 @@ Y <- matrix(lou$membership==POI, ncol = 1)
 colnames(Y) = "label"
 dds <- DESeqDataSetFromMatrix(Rawc[useg,]+1, colData = Y, design = ~ label)
 dds <- DESeq2::DESeq(dds,test="Wald")
-degs <- DESeq2::results(dds,lfcThreshold=lfcthreth,alpha=fdr) %>% as_tibble(.,rownames="ext_gene") %>% filter(padj<0.01)
+degs <- DESeq2::results(dds,lfcThreshold=lfcthreth,alpha=fdr) %>% 
+  as_tibble(.,rownames="ext_gene") %>% filter(padj<0.01)
 print(degs)
 ```
 
@@ -181,6 +184,3 @@ ggplot(degs_,aes(x=log2FoldChange,y=log10FDR,color=class)) + geom_point(size=1.2
 ggplot(degs_,aes(x=baseMean,y=log2FoldChange,color=class)) + geom_point(size=0.8,alpha=0.8) + 
   theme_minimal() + scale_color_manual(values = c("#D62728FF","#808080")) + scale_x_log10()
 ```
-
-
-
