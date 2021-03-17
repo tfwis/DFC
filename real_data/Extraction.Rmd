@@ -16,7 +16,7 @@ output:
 
 ```{r setup}
 library(tidyverse)
-
+library(glmnet)
 usecore <- 4
 doParallel::registerDoParallel(usecore)
 
