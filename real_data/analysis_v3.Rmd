@@ -16,7 +16,6 @@ output:
 
 ```{r setup}
 library(tidyverse)
-
 scale_color <- viridis::scale_color_viridis()
 discrete_color <- ggsci::scale_color_d3("category20")
 ```
@@ -27,7 +26,7 @@ dfcs <- readr::read_csv("/DFC/real_data/genelist/dfcs.csv")
 ```
 
 
-## classification & visualization
+## classification
 
 ```{r classification}
 quant <-  Normc[rownames(Normc) %in% dfcs$ext_gene,] %>% split(.,dfcs$ext_gene) %>% 
@@ -58,15 +57,6 @@ dfcs <- cbind(unlist(groups,use.names = FALSE),rep(names(groups),lapply(groups, 
 print(dfcs)
 ```
 
-
-```{r venn plot}
-gplots::venn(list(nonDEGs=setdiff(dfcs$ext_gene,degs$ext_gene),
-          Niche=groups$niche))
-degs[order(degs$baseMean),] %>% mutate(baseMean_rank=1:nrow(degs)) %>% filter(ext_gene %in% groups$niche)
-intersect(setdiff(dfcs$ext_gene,degs$ext_gene),groups$niche)
-```
-
-
 ```{r box plot,fig.width=9, fig.height=8}
 Df <- Df %>% mutate(Target=(cluster==12))
 dfc.expr <- normc %>%
@@ -84,11 +74,14 @@ boxes <- function(x,nrow=5){
 ```
 
 
+## visualization
+
 ```{r GO enrichment, fig.width=8,fig.height=4}
 entid <- clusterProfiler::bitr(e2g$ens_gene[e2g$ext_gene %in% groups$strong],
-                               fromType = "ENSEMBL",toType = "ENTREZID",org.Mm.eg.db) %>% .$ENTREZID
-goen <- clusterProfiler::enrichGO(entid,OrgDb = org.Mm.eg.db,
-                                  readable = TRUE,ont="BP") %>% clusterProfiler::simplify()
+                               fromType = "ENSEMBL",toType = "ENTREZID",org.Mm.eg.db) %>% 
+                               .$ENTREZID
+goen <- clusterProfiler::enrichGO(entid,OrgDb = org.Mm.eg.db,readable = TRUE, ont="BP") %>% 
+  clusterProfiler::simplify()
 clusterProfiler::dotplot(goen)
 ```
 
@@ -120,7 +113,6 @@ uweak <- dfc.expr %>% filter(group == "weak") %>%
 print(uweak)
 ```
 
-
 ```{r correlation,fig.width=8,fig.height=8}
 anno <- colnames(cor12) %>% as_tibble %>% dplyr::rename(ext_gene=value) %>% left_join(.,dfcs_w) %>% as.data.frame() %>% .[,-1]
 colnames(anno) <- c("weight","gene group")
@@ -133,7 +125,6 @@ ann_colors = list(
     )
 pal <- colorRampPalette(c("blue","grey","red"))
 
-dfcs <- read_csv("~/fuji/genelist")
 expr <-  Normc[rownames(Normc) %in% dfcs$value,] %>% t 
 cor1 <- cor(expr[lab.POI,]); diag(cor1) <- NA
 ph1 <- pheatmap::pheatmap(cor1,breaks=seq(-0.8,0.8,len=256),color=pal(256),
