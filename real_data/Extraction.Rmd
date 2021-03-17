@@ -28,9 +28,9 @@ discrete_color <- ggsci::scale_color_d3("category20")
 ## load data
 
 ```{r load data}
-Rawc <- read.table(file="/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_rawdata.txt", sep="\t", header=T, row.names=1 )
-Normc <- read.table(file="/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_normalizeddata.txt", sep="\t", header=T, row.names=1 ) #scaled data
-meta <- read_tsv("/home/guestA/n70275c/fuji/work/Logireg/data/GSE143437_DeMicheli_MuSCatlas_metadata.txt") 
+Rawc <- read.table("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE143437&format=file&file=GSE143437%5FDeMicheli%5FMuSCatlas%5Frawdata%2Etxt%2Egz", sep="\t", header=T, row.names=1)
+Normc <- read.table("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE143437&format=file&file=GSE143437%5FDeMicheli%5FMuSCatlas%5Fnormalizeddata%2Etxt%2Egz", sep="\t", header=T, row.names=1)
+meta <- read_tsv("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE143437&format=file&file=GSE143437%5FDeMicheli%5FMuSCatlas%5Fmetadata%2Etxt%2Egz")
 ```
 
 
