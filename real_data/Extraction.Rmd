@@ -47,7 +47,7 @@ mat <- scale(t(normc[,-1]),center=FALSE) %>% as.matrix() %>% Matrix::drop0()
 
 ```{r data visualization, fig.width=12, fig.height=8}
 set.seed(10)
-um <- uwot::umap(t(normc[,-1]),n_neighbors=30,min_dist=0.5,pca=50,n_threads = 16)
+um <- uwot::umap(t(normc[,-1]),n_neighbors=30,min_dist=0.5,pca=50)
 g <- igraph::graph_from_adjacency_matrix(as.matrix(dist(um))<1.5,mode="undirected")
 lou <- igraph::cluster_louvain(g)
 
@@ -55,15 +55,13 @@ lab <- meta %>% mutate(number=1:nrow(meta)) %>% rename(cell=X1)
 Df <- lab %>% mutate(
   UMAP1 = um[,1],
   UMAP2 = um[,2],
-  cluster=as.factor(lou$membership),
-  #Target = (as.factor(lou$membership) == POI)
+  cluster=as.factor(lou$membership)
   )
 
 patchwork::wrap_plots(
   ggplot(Df,aes(x=UMAP1,y=UMAP2,colour=injury)) + geom_point(size=0.8,alpha=0.8) + theme_minimal() + coord_fixed() + discrete_color,
   ggplot(Df,aes(x=UMAP1,y=UMAP2,colour=cell_annotation)) + geom_point(size=0.8,alpha=0.8) + theme_minimal() + coord_fixed() + discrete_color,
   ggplot(Df,aes(x=UMAP1,y=UMAP2,colour=cluster)) + geom_point(size=0.8,alpha=0.8) + theme_minimal() + coord_fixed() + discrete_color,
-  #ggplot(Df,aes(x=UMAP1,y=UMAP2,colour=Target)) + geom_point(size=0.8,alpha=0.8) + theme_minimal() + coord_fixed() + discrete_color,
   nrow=2)
 ```
 
@@ -148,11 +146,8 @@ plot(alasso.min$glmnet.fit,xvar="lambda")
 b <- Matrix::drop(coef.glmnet(alasso.min,"lambda.1se")) %>% as_tibble()
 B <- c("Int",rownames(Normc[useg,][useg.30,])) %>% cbind(.,b)
 colnames(B) = c("ext_gene","weight") 
-Wei <- B[B$weight!=0,]%>% as_tibble() %>%
-  right_join(e2g[,-1],.) %>% arrange(-weight)
+Wei <- B[B$weight!=0,]%>% as_tibble() %>% arrange(-weight)
 Wei <- Wei[duplicated(Wei$ext_gene)!=TRUE,]
-#Wei <- read_csv("~/fuji/dfcs_108.csv")
-
 print(Wei)
 ```
 
@@ -172,13 +167,13 @@ print(degs)
 ## DEG vs DFC
 
 ```{r venn plot}
-dfcs <- Wei %>% filter(ext_gene!="Int") %>% select(-(2:3))
-venn(list(DEGs=degs$ext_gene,
-          DFCs=dfcs$ext_gene))
+dfc <- Wei %>% filter(ext_gene!="Int")
+venn(list(DEG=degs$ext_gene,
+          DFC=dfcs$ext_gene))
 ```
 
 ```{r,fig.height=5,fig.width=8}
-degs_ <- degs %>% mutate(log10FDR=-log(padj,10),PN=(log2FoldChange>0)) %>% left_join(.,dfcs,by="ext_gene")
+degs_ <- degs %>% mutate(log10FDR=-log(padj,10),PN=(log2FoldChange>0)) %>% left_join(.,dfc,by="ext_gene")
 degs_$class[is.na(degs_$weight)] <- "nonDFC"
 degs_$class[degs_$weight!="nonDFC"] <- "DFC"
 ggplot(degs_,aes(x=log2FoldChange,y=log10FDR,color=class)) + geom_point(size=1.2,alpha=0.6) + 
