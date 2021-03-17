@@ -170,13 +170,13 @@ print(degs)
 ## DEG vs DFC
 
 ```{r venn plot}
-dfc <- Wei %>% filter(ext_gene!="Int")
+dfcs <- Wei %>% filter(ext_gene!="Int")
 venn(list(DEG=degs$ext_gene,
           DFC=dfcs$ext_gene))
 ```
 
 ```{r,fig.height=5,fig.width=8}
-degs_ <- degs %>% mutate(log10FDR=-log(padj,10),PN=(log2FoldChange>0)) %>% left_join(.,dfc,by="ext_gene")
+degs_ <- degs %>% mutate(log10FDR=-log(padj,10),PN=(log2FoldChange>0)) %>% left_join(.,dfcs,by="ext_gene")
 degs_$class[is.na(degs_$weight)] <- "nonDFC"
 degs_$class[degs_$weight!="nonDFC"] <- "DFC"
 ggplot(degs_,aes(x=log2FoldChange,y=log10FDR,color=class)) + geom_point(size=1.2,alpha=0.6) + 
