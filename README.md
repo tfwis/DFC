@@ -1,4 +1,6 @@
-#### Load packages
+
+
+### Load packages
 
 Please confirm that these packages are installed before trying this example.
 
@@ -6,7 +8,7 @@ Please confirm that these packages are installed before trying this example.
 library(tidyverse)
 ```
 
-#### Load scRNA-seq data
+### Load scRNA-seq data
 
 Load data of from [GSE143437](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE143437) (Andrea et al., 2020).
 
