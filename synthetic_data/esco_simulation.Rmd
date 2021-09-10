@@ -1,0 +1,153 @@
+---
+title: "DFC extraction from ESCO simulation data"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+  html_document:
+    df_print: paged
+    theme: united
+    toc: yes
+  pdf_document: default
+---
+
+
+```{r setup}
+library(tidyverse)
+library(ESCO)
+library(DESeq2)
+
+gscale <- function(X)
+{
+  if(any(X<0)) stop("All values should be non-negative.")
+  scale(X,
+    scale = apply(X/apply(X, 1, function(x)
+      exp(mean(log(x)))), 2, function(x)
+        median(x,na.rm=TRUE)
+      ),
+    center=FALSE
+  )
+}
+```
+
+```{r ESCO simulation}
+rholist = list()
+rholist[[1]] <- matrix(0,ncol=2,nrow=2)
+diag(rholist[[1]]) <- 1
+rholist[[2]] <- matrix(0,ncol=2,nrow=2)
+diag(rholist[[2]]) <- 1
+rholist[[3]] <- matrix(0,ncol=2,nrow=2)
+diag(rholist[[3]]) <- 1
+
+set.seed(10)
+sim1 <- escoSimulateGroups(nGenes = 15, nCells = 1000, 
+                           #nGroup = 2,
+                           group.prob = c(0.5,0.5), 
+                           deall.prob = 0.3,
+                           de.prob = c(0.5,0.5),
+                           #de.facLoc = c(0.5,0.5),
+                           withcorr = TRUE,
+                           verbose = FALSE,
+                           trials = 1,
+                           corr = rholist)
+
+sim2 <- escoSimulateGroups(nGenes = 15, nCells = 1000, 
+                           #nGroup = 2,
+                           group.prob = c(0.5,0.5), 
+                           deall.prob = 0.3,
+                           de.prob = c(0.5,0.5),
+                           #de.facLoc = c(0.5,0.5),
+                           withcorr = TRUE,
+                           verbose = FALSE,
+                           trials = 1,
+                           corr = rholist)
+```
+
+
+```{r merge data sets}
+mat1 = assays(sim1)$observedcounts %>% t
+mat2 = assays(sim2)$observedcounts %>% t
+lab1 <- sim1$Group
+lab1[lab1=='Group1'] <- paste('Group1',1:sum(lab1=='Group1'),sep='_')
+lab1[lab1=='Group2'] <- paste('Group2',1:sum(lab1=='Group2'),sep='_')
+rownames(mat1) <- lab1
+
+lab2 <- sim2$Group
+lab2[lab2=='Group1'] <- paste('Group1',1:sum(lab2=='Group1'),sep='_')
+lab2[lab2=='Group2'] <- paste('Group2',1:sum(lab2=='Group2'),sep='_')
+rownames(mat2) <- lab2
+
+colnames(mat1) <- paste0(colnames(mat1),'_1')
+colnames(mat2) <- paste0(colnames(mat2),'_2')
+
+mat <- inner_join(as_tibble(mat1,rownames='cell'),
+                  as_tibble(mat2,rownames='cell'),by='cell') 
+cell <- mat$cell
+mat <- t(mat[,-1])
+colnames(mat) <- cell
+```
+
+```{r labeling}
+genegroup = c(paste0("Group", rowData(sim1)$GeneGroup),
+              paste0("Group", rowData(sim2)$GeneGroup))
+genegroup[which(genegroup=="Group0")] = "None"
+geneinfo = data.frame(genes = rownames(mat), 
+                      newcelltype = as.factor(genegroup))
+print(geneinfo)
+```
+
+
+```{r plot markers, fig.width=6,fig.height=6}
+matt <- mat[geneinfo$newcelltype!='None',] %>% t
+type <- gsub('_.*','',colnames(mat))
+p <- GGally::ggpairs(bind_cols(class=factor(type),as_tibble(matt)),
+                     columns=2:9,
+                     aes(colour=class,alpha=0.5),
+                     progress=FALSE,
+                     lower=list(continuous=GGally::wrap("points",size=0.1,alpha=0.5))) + theme_bw()
+print(p)
+```
+
+
+```{r adaptive_lasso}
+X <- gscale(t(gscale(mat + 1)))
+y <- gsub('_.*','',colnames(mat))=='Group1'
+
+library(glmnet)
+ridge <- cv.glmnet(X,y,alpha=0,lambda=exp(seq(-10,0,len=100)))
+plot(ridge)
+
+pena <- 1/abs(coef.glmnet(ridge,'lambda.1se')[-1])
+adapl <- cv.glmnet(X,y,alpha=1,penalty=pena,
+                   lambda=exp(seq(-8,3,len=120)))
+dfc <- coef(adapl,'lambda.1se') %>% 
+  as.matrix() %>% as_tibble(rownames='gene') %>% 
+  rename(weight=2) %>% filter(weight!=0,gene!='(Intercept)') %>%
+  arrange(-abs(weight))
+
+plot(adapl)
+plot(adapl$glmnet.fit, xvar='lambda')
+```
+
+```{r DFC extraction}
+b2 <- with(adapl, min(lambda[nzero==4])) # best lambda at df=4
+dfc <- coef(adapl,b2) %>% 
+  as.matrix() %>% as_tibble(rownames='gene') %>% 
+  rename(weight=2) %>% filter(weight!=0,gene!='(Intercept)') %>%
+  arrange(-abs(weight))
+print(dfc)
+```
+
+
+```{r DE analysis}
+design <- matrix(y, ncol = 1)
+colnames(design) = "label"
+dds <- DESeqDataSetFromMatrix(mat+1, colData = design, design = ~ label)
+dds <- DESeq(dds,test="Wald")
+res <- results(dds,lfcThreshold=log2(1),alpha=0.01) %>% 
+  as_tibble(.,rownames="ext_gene") %>% filter(padj<0.01,baseMean>5) %>% 
+  arrange(padj)
+print(res)
+```
+
+
