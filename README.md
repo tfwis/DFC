@@ -1,9 +1,5 @@
 # Data analysis for the demonstration of *Discriminative featrure of cells*
 
-### R package
-
-https://github.com/tfwis/alDFC
-
 ### Load packages
 
 Please confirm that these packages are installed before trying this example.
@@ -30,3 +26,8 @@ Load [STRING](https://string-db.org/) database for analysis on R.
 st_link <- readr::read_delim("https://stringdb-static.org/download/protein.links.full.v11.0/10090.protein.links.full.v11.0.txt.gz",delim=" ")
 st_info <- readr::read_tsv("https://stringdb-static.org/download/protein.info.v11.0/10090.protein.info.v11.0.txt.gz",col_types="cc__") %>% with(setNames(preferred_name,protein_external_id))
 ```
+
+
+### R package
+
+https://github.com/tfwis/alDFC
