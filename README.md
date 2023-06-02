@@ -1,6 +1,6 @@
 # Data analysis for the demonstration of *Discriminative featrure of cells*
 
-This is the repository to reproduce the results of DFC paper.  
+This is the repository to reproduce the results of [DFC paper](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009579).  
 Please see below when you use our DFC method in R.  
 https://github.com/tfwis/alDFC
 
