@@ -1,5 +1,9 @@
 # Data analysis for the demonstration of *Discriminative featrure of cells*
 
+### R package
+
+https://github.com/tfwis/alDFC
+
 ### Load packages
 
 Please confirm that these packages are installed before trying this example.
